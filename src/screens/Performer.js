@@ -24,7 +24,7 @@ const Performer = ({navigation,currentUser, route}) => {
     const p = route.params.performer;
 
     const hash = sha256(p.email+currentUser.user_id).words[0];
-    console.log(hash);
+
     const followher = () => {
         axios({
             method:'POST',
@@ -120,7 +120,7 @@ const Performer = ({navigation,currentUser, route}) => {
     })
     }
 
-      const endCall = () => {
+    const endCall = () => {
         // route.params.engine?.leaveChannel();
         const db = getDatabase();
         const paidRef = ref(db, 'paidcam/'+p?.id);

@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ToastAndroid,
   ScrollView,
   Image,
   TextInput,
@@ -21,11 +22,15 @@ import {
   orderByValue,
   onValue,
   update,
+  get,
 } from 'firebase/database';
 import {API} from '../../api.config';
+import Icoo from 'react-native-vector-icons/MaterialIcons'
 import Icon from 'react-native-vector-icons/Ionicons';
 import Ico from 'react-native-vector-icons/AntDesign';
+import Icons from 'react-native-vector-icons/Feather';
 import Ic from 'react-native-vector-icons/FontAwesome';
+import axios from 'axios';
 
 const dark = '#10152F';
 
@@ -37,6 +42,8 @@ const ChatScreen = ({navigation, currentUser, route}) => {
 
   const [messages, setMessages] = React.useState([]);
   const [message, setMessage] = React.useState('');
+  const [calling, setCalling] = React.useState(false);
+  const [show, setShow] = React.useState(false);
   const scrollRef = useRef();
 
   const init = () => {
@@ -89,9 +96,95 @@ const ChatScreen = ({navigation, currentUser, route}) => {
       timeStamp: Date.now(),
     });
   };
+  const call = () => {
+
+    axios({
+        method:'POST',
+        url:`${API}/customer_wallet_balance`,
+        data:{customer_id:currentUser.user_id}
+    }).then((res) => {
+        if(res.data.responseCode){
+            axios({
+              method:'POST',
+              url:`${API}/performer_details`,
+              data:{user_id:performer}
+            }).then(({data}) => {
+              if(data.responseCode){
+                let p = data?.responseData;
+                const time = ((+(res.data.responseData))/(+(p.coin_per_min)))*60*1000;
+                if(time>10000){
+                    try{
+                        const db = getDatabase();
+                        const paidRef = ref(db, 'paidcam/'+p?.id);
+                        update(paidRef, {
+                            person2:+(currentUser.user_id),
+                            image : currentUser.profile_image,
+                            maxtime: time,
+                            name : currentUser.name,
+                            status:'waiting'
+                    });
+                    }catch(err){
+                        console.log(err);
+                    }
+                }else{
+                    ToastAndroid.showWithGravity("Your Wallet Balance is low , Recharge Now!",ToastAndroid.CENTER, ToastAndroid.LONG);
+                }
+              }
+            }).catch((err) => {
+              console.log(err);
+            })
+            
+        }
+    }).catch((err) => {
+        console.log(err);
+    })
+    
+}
+
+  const checkOnline = () => {
+    const db = getDatabase();
+    const paidRef = ref(db, 'paidcam/'+performer);
+    onValue(paidRef,snapShot => {
+      console.log(snapShot.val());
+      if(snapShot.exists() && snapShot.val().status==="pending"){
+        setShow(true);
+      }else if(snapShot.exists() && snapShot.val().status==="waiting" && snapShot.val().person2==currentUser.user_id ){
+        setCalling(true);
+      }else if(snapShot.exists() && snapShot.val().status==="incall" && snapShot.val().person2==currentUser.user_id){
+        console.log(performer);
+        navigation.navigate("VideoCall", {id : performer});
+      }else if(!snapShot.exists()){
+        setShow(false);
+        console.log('running......*');
+      }else{
+        //do nothing
+      }
+    })
+  }
+  console.log(currentUser)
   React.useEffect(() => {
     init();
+    checkOnline();
   }, []);
+
+  const endCall = () => {
+    // route.params.engine?.leaveChannel();
+    setCalling(false);
+    const db = getDatabase();
+    const paidRef = ref(db, 'paidcam/'+performer);
+    // const paid = push(paidRef);
+    update(paidRef,{
+        status:'pending',//pending, waiting, joined
+        person2:"",
+        image : "",
+        maxtime: 0,
+        name : "",
+    }).then((res) => {
+    }).catch((err) => {
+        console.log("ERROR ", err);
+    })
+    
+}
 
   const Message = ({msg}) => {
     if (msg.sender == currentUser.user_id) {
@@ -137,6 +230,8 @@ const ChatScreen = ({navigation, currentUser, route}) => {
           borderBottomRightRadius: 50,
           marginBottom: 20,
           flexDirection: 'row',
+          width: '100%',
+          alignItems:'center',
         }}>
         <TouchableOpacity
           onPress={() => {
@@ -162,6 +257,24 @@ const ChatScreen = ({navigation, currentUser, route}) => {
           }}>
           {performer_name}
         </Text>
+        {show ? (calling ?
+        <View style={{display:'flex', flexDirection:'row', alignItems:'center'}}>
+          <Text style={{color:'white'}}>Calling...</Text>
+          <TouchableOpacity onPress={endCall} activeOpacity={0.4} 
+          style={{alignItems:'flex-end', backgroundColor:'#ff0000', alignItems:'center', padding:5, borderWidth:1, borderColor:'white', borderStyle:'solid', borderRadius:50, marginLeft:5}}
+          >
+          <Icoo name='call-end' color="#fff" size={25} />
+          </TouchableOpacity>
+        </View>
+        :
+        <TouchableOpacity onPress={call} activeOpacity={0.4} 
+        style={{alignItems:'flex-end'}}
+        >
+        <Ic name='video-camera' color={'#fff'} size={30} />
+        </TouchableOpacity>)
+        :
+        <Icons name='video-off' color={'#fff'} size={30} />
+      }
       </View>
       <ScrollView style={{flex: 1}} ref={scrollRef}
         onContentSizeChange={() => scrollRef.current.scrollToEnd({ animated: true })}>

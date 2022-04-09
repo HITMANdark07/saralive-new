@@ -81,14 +81,16 @@ const Router = ({currentUser,setNoti}) => {
     const mRef = query(ref(db, 'messages'),orderByChild("receiver"), equalTo(currentUser?.user_id));
     return onValue(mRef,(snapshot) => {
         setNoti(true);
-        console.log(Object.keys(snapshot.val()));
-        let last = Object.keys(snapshot.val())[(Object.keys(snapshot.val())).length-1];
-        let msg = (snapshot.val())[last].message;
-        PushNotification.localNotification({
-          channelId:'channelpoply',
-          message:msg,
-          title:'New Message'
-        })
+        // console.log(Object.keys(snapshot.val()));
+        if(snapshot.val()){
+          let last = Object.keys(snapshot.val())[(Object.keys(snapshot.val())).length-1];
+          let msg = (snapshot.val())[last].message;
+          PushNotification.localNotification({
+            channelId:'channelpoply',
+            message:msg,
+            title:'New Message'
+          })
+        }
     })
     }
 },[]);
