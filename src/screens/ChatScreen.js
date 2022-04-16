@@ -63,6 +63,22 @@ const ChatScreen = ({navigation, currentUser, route}) => {
     return messagesRef;
   };
 
+  const deductCoin = () => {
+    axios({
+      method:'POST',
+      url:`${API}/customer_coin_deduct`,
+      data:{
+        customer_id:currentUser.user_id,
+        performer_id:performer,
+        coin:1
+      }
+    }).then(({data}) => {
+      console.log(data);
+    }).catch((err) => {
+      console.log(err);
+    })
+  }
+
   const sendMessage = msg => {
     const db = getDatabase();
     const messageRef = ref(db, 'messages');
@@ -76,6 +92,7 @@ const ChatScreen = ({navigation, currentUser, route}) => {
     })
       .then(res => {
         console.log(res);
+        deductCoin();
       })
       .catch(err => {
         console.log('ERROR ', err);
