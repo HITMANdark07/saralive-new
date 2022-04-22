@@ -17,7 +17,7 @@ import ChatScreen from './src/screens/ChatScreen';
 import Profile from './src/screens/Profile';
 import Performer from './src/screens/Performer';
 import OtpScreen from './src/screens/OtpScreen';
-import {LogBox } from 'react-native';
+import {LogBox, AppState } from 'react-native';
 LogBox.ignoreLogs(['Reanimated 2']);
 import { connect } from 'react-redux';
 import firebase from './src/firebase/config';
@@ -75,6 +75,42 @@ const Router = ({currentUser,setNoti}) => {
     },
     (created) => console.log(`createChannel returned '${created}'`) // (optional) callback returns whether the channel was created, false means it already existed.
   );
+
+  const onlineCustomer = (customerRef) => {
+    set(customerRef,{
+      ...currentUser
+    }).then((res) => {
+      console.log("customer Online");
+    }).catch((err) => {
+        console.log("ERROR ", err);
+    })
+  }
+  React.useEffect(() => {
+    const db = getDatabase();
+    let subs;
+    let flag=0;
+    if(currentUser){
+      flag=1;
+      const customerRef = ref(db, 'customers/'+currentUser.user_id);
+      onlineCustomer(customerRef);
+      subs = AppState.addEventListener('change', ()=> {
+        if(AppState.currentState==="active"){
+          onlineCustomer(customerRef);
+        }else if(AppState.currentState==="running"){
+          onlineCustomer(customerRef);
+        }
+        else{
+          remove(customerRef);
+            console.log(AppState.currentState);
+        }
+    });
+    }
+    return () => {
+        if(flag===1){
+          subs.remove();
+        }
+    }
+},[currentUser]);
   React.useEffect(() => {
     if(currentUser){
     const db = getDatabase();

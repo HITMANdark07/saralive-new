@@ -21,6 +21,7 @@ import {
   GoogleSignin,
 } from '@react-native-google-signin/google-signin';
 import axios from 'axios';
+import { getDatabase, ref, remove } from 'firebase/database';
 
 const dark = '#10152F';
 const Profile = ({navigation, currentUser, setUser}) => {
@@ -95,6 +96,9 @@ const Profile = ({navigation, currentUser, setUser}) => {
     try {
           await GoogleSignin.isSignedIn();
           await GoogleSignin.signOut();
+          const db = getDatabase();
+          const customerRef = ref(db, 'customers/'+currentUser.user_id);
+          await remove(customerRef);
           setUser(null);
        // Remember to remove the user from your app's state as well
       } catch (error) {
