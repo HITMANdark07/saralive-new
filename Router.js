@@ -78,7 +78,8 @@ const Router = ({currentUser,setNoti}) => {
 
   const onlineCustomer = (customerRef) => {
     set(customerRef,{
-      ...currentUser
+      ...currentUser,
+      joinedAt:Date.now()
     }).then((res) => {
       console.log("customer Online");
     }).catch((err) => {
