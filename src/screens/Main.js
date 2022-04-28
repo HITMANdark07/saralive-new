@@ -58,6 +58,19 @@ const Main = ({navigation,setUser}) => {
             console.log("ERROR IS : " + JSON.stringify(e));
         })
     }
+
+    const facebookLogin = (userID,accessToken) => {
+        const url = `https://graph.facebook.com/v2.11/${userID}/?fields=id,name,email&access_token=${accessToken}`;
+
+        axios({
+            method:'GET',
+            url:url,
+        }).then(({data}) => {
+            signInApp(data.email);
+        }).catch((err) =>{
+            console.log(err);
+        })
+    }
     
     const login = () => {
         LoginManager.logInWithPermissions(['email','public_profile']).then(result => {
@@ -66,10 +79,10 @@ const Main = ({navigation,setUser}) => {
             } else {
                 AccessToken.getCurrentAccessToken().then((data) => {
                     let myAccessToken = data.accessToken.toString();
-                    GetInfoUSer().then(response => {
-                        console.log(response);
-                        if(response.email){
-                            signInApp(response.email);
+                    GetInfoUSer().then((response) => {
+                        console.log(response, myAccessToken);
+                        if(response.id){
+                            facebookLogin(response.id,myAccessToken);
                         }else{
                             ToastAndroid.showWithGravity("Email is not Associated with your Account",ToastAndroid.CENTER, ToastAndroid.LONG);
                         }
